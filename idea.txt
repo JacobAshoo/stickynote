@@ -1,0 +1,6 @@
+- Sticky notes in cli
+- on open: view all individual stickynotes and stacks of stickynotes
+- move around and select a stickynote and it opens the note/stack
+- vim-like movements 
+
+--tui
