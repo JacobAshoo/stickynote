@@ -50,7 +50,7 @@ struct App {
     edit_mode: EditMode,
     stacks: Vec<Stack>,
     state: State,
-    focus: (usize, usize),
+    focus: [usize; 2],
 }
 
 impl App {
@@ -73,16 +73,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         notes: vec![Stickynote::new("note 11".to_string())],
     };
 
-    let mut stack2 = Stack {
-        notes: vec![Stickynote::new("note 21".to_string())],
-    };
-
     // create app and run it
     let app = App {
         edit_mode: EditMode::Normal,
         state: State::Normal,
-        stacks: vec![stack1, stack2],
-        focus: (0, 0),
+        stacks: vec![stack1],
+        focus: [0, 0],
     };
 
     let res = run_app(&mut terminal, app);
@@ -114,6 +110,16 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
             if let KeyCode::Char('n') = key.code {
                 app.new_stack();
             }
+            if let KeyCode::Char('d') = key.code {
+                if app.stacks.len() == 0 {
+                    continue;
+                }
+                app.stacks[app.focus[0]].notes.remove(app.focus[1]);
+                //remove stack if empty
+                if app.stacks[app.focus[0]].notes.len() == 0 {
+                    app.stacks.remove(app.focus[0]);
+                }
+            }
         }
     }
 }
@@ -134,7 +140,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
 
     // render notes
     let stacks = &app.stacks;
-    let total_stacks_length = (stacks.len() as u16) * (INNER_MARGIN + NOTE_WIDTH);
+    let total_stacks_length = (app.stacks.len() as u16) * (INNER_MARGIN + NOTE_WIDTH);
     let first_x = ((area.width - total_stacks_length) / 2) - (NOTE_WIDTH / 2) + INNER_MARGIN;
 
     for (i, stack) in stacks.iter().enumerate() {
