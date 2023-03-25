@@ -151,10 +151,17 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                 NOTE_WIDTH,
                 NOTE_HEIGHT,
             );
-            let p = Paragraph::new(note.text.clone())
+            let mut p = Paragraph::new(note.text.clone())
                 .block(Block::default().borders(Borders::ALL))
                 .alignment(Alignment::Center)
                 .wrap(widgets::Wrap { trim: true });
+            if i == app.focus[0] && i == app.focus[j] {
+                p = p.block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Thick),
+                );
+            }
             f.render_widget(p, rect);
         }
     }
