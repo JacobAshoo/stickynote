@@ -40,7 +40,7 @@ enum EditMode {
     Normal,
     Insert,
 }
-
+#[derive(PartialEq)]
 enum State {
     Normal,
     Editing,
@@ -118,6 +118,43 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 //remove stack if empty
                 if app.stacks[app.focus[0]].notes.len() == 0 {
                     app.stacks.remove(app.focus[0]);
+                }
+            }
+            if let KeyCode::Char('h') = key.code {
+                if app.state == State::Normal {
+                    if app.focus[0] == 0 {
+                        app.focus[0] = app.stacks.len() - 1;
+                    } else {
+                        app.focus[0] -= 1;
+                    }
+                }
+            }
+            if let KeyCode::Left = key.code {
+                if app.state == State::Normal {
+                    if app.focus[0] == 0 {
+                        app.focus[0] = app.stacks.len() - 1;
+                    } else {
+                        app.focus[0] -= 1;
+                    }
+                }
+            }
+
+            if let KeyCode::Char('l') = key.code {
+                if app.state == State::Normal {
+                    if app.focus[0] == app.stacks.len() - 1 {
+                        app.focus[0] = 0;
+                    } else {
+                        app.focus[0] += 1;
+                    }
+                }
+            }
+            if let KeyCode::Right = key.code {
+                if app.state == State::Normal {
+                    if app.focus[0] == app.stacks.len() - 1 {
+                        app.focus[0] = 0;
+                    } else {
+                        app.focus[0] += 1;
+                    }
                 }
             }
         }
