@@ -15,8 +15,9 @@ use tui::{
     Frame, Terminal,
 };
 
-const NOTE_HEIGHT: usize = 10;
-const NOTE_WIDTH: usize = 20;
+const NOTE_HEIGHT: u16 = 10;
+const NOTE_WIDTH: u16 = 20;
+const INNER_MARGIN: u16 = 5;
 
 struct Stickynote {
     text: String,
@@ -52,6 +53,14 @@ struct App {
     focus: (usize, usize),
 }
 
+impl App {
+    fn new_stack(&mut self) {
+        self.stacks.push(Stack {
+            notes: vec![Stickynote::new("text".to_string())],
+        });
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
@@ -61,18 +70,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let mut stack1 = Stack {
-        notes: vec![
-            Stickynote::new("note 11".to_string()),
-            Stickynote::new("note 12".to_string()),
-            Stickynote::new("note 13".to_string()),
-        ],
+        notes: vec![Stickynote::new("note 11".to_string())],
     };
 
     let mut stack2 = Stack {
-        notes: vec![
-            Stickynote::new("note 21".to_string()),
-            Stickynote::new("note 22".to_string()),
-        ],
+        notes: vec![Stickynote::new("note 21".to_string())],
     };
 
     // create app and run it
@@ -109,6 +111,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
             if let KeyCode::Char('q') = key.code {
                 return Ok(());
             }
+            if let KeyCode::Char('n') = key.code {
+                app.new_stack();
+            }
         }
     }
 }
@@ -126,21 +131,23 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Rounded);
     f.render_widget(block, area);
+
     // render notes
     let stacks = &app.stacks;
+    let total_stacks_length = (stacks.len() as u16) * (INNER_MARGIN + NOTE_WIDTH);
+    let first_x = ((area.width - total_stacks_length) / 2) - (NOTE_WIDTH / 2) + INNER_MARGIN;
 
     for (i, stack) in stacks.iter().enumerate() {
         for (j, note) in stack.notes.iter().enumerate() {
-            let block = Block::default().borders(Borders::ALL);
-            let rect = Rect {
-                x: u16::try_from(i * (NOTE_WIDTH + 5) + 30).unwrap(),
-                y: u16::try_from((j * NOTE_HEIGHT) + 3).unwrap(),
-                width: u16::try_from(NOTE_WIDTH).unwrap(),
-                height: u16::try_from(NOTE_HEIGHT).unwrap(),
-            };
+            let rect = Rect::new(
+                first_x + (i as u16 * (NOTE_WIDTH + INNER_MARGIN)),
+                area.height / 2 - NOTE_HEIGHT / 2,
+                NOTE_WIDTH,
+                NOTE_HEIGHT,
+            );
             let p = Paragraph::new(note.text.clone())
-                .alignment(layout::Alignment::Center)
-                .block(block)
+                .block(Block::default().borders(Borders::ALL))
+                .alignment(Alignment::Center)
                 .wrap(widgets::Wrap { trim: true });
             f.render_widget(p, rect);
         }
