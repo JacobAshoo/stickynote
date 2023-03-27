@@ -169,7 +169,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     } else {
                         let current_stack_len = app.stacks[app.focus[0]].notes.len();
                         let next_stack_len = app.stacks[app.focus[0] - 1].notes.len();
-                        if current_stack_len > next_stack_len && app.focus[1] > next_stack_len - 1 {
+                        if app.focus[1] > next_stack_len - 1 {
                             app.focus[1] = next_stack_len - 1;
                         }
                     }
@@ -183,11 +183,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     } else {
                         let current_stack_len = app.stacks[app.focus[0]].notes.len();
                         let next_stack_len = app.stacks[app.focus[0] + 1].notes.len();
-                        if current_stack_len > next_stack_len && app.focus[1] > next_stack_len - 1 {
-                            app.focus[1] = current_stack_len - next_stack_len;
-                            if next_stack_len == 1 {
-                                app.focus[1] -= 1;
-                            }
+                        if app.focus[1] > next_stack_len - 1 {
+                            app.focus[1] = next_stack_len - 1;
                         }
                         app.focus[0] += 1;
                     }
@@ -207,17 +204,30 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     app.focus[1] -= 1;
                 }
                 if let KeyCode::Left = key.code {
+                    // if focused note is at index 0
                     if app.focus[0] == 0 {
-                        app.focus[0] = app.stacks.len() - 1;
+                        continue;
                     } else {
-                        app.focus[0] -= 1;
+                        let current_stack_len = app.stacks[app.focus[0]].notes.len();
+                        let next_stack_len = app.stacks[app.focus[0] - 1].notes.len();
+                        if app.focus[1] > next_stack_len - 1 {
+                            app.focus[1] = next_stack_len - 1;
+                        }
                     }
+
+                    app.focus[0] -= 1;
                 }
 
                 if let KeyCode::Right = key.code {
+                    // if focused note is at end
                     if app.focus[0] == app.stacks.len() - 1 {
                         app.focus[0] = 0;
                     } else {
+                        let current_stack_len = app.stacks[app.focus[0]].notes.len();
+                        let next_stack_len = app.stacks[app.focus[0] + 1].notes.len();
+                        if app.focus[1] > next_stack_len - 1 {
+                            app.focus[1] = next_stack_len - 1;
+                        }
                         app.focus[0] += 1;
                     }
                 }
