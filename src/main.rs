@@ -20,6 +20,8 @@ const NOTE_WIDTH: u16 = 20;
 const INNER_MARGIN: u16 = 5;
 const TOP_MARGIN: u16 = 5;
 
+const BAR_HEIGHT: u16 = 3;
+
 struct Stickynote {
     text: String,
 }
@@ -156,6 +158,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     if app.focus[0] < 0 {
                         app.focus[0] = 0;
                     }
+                    if app.focus[1] > app.stacks[app.focus[0]].notes.len() - 1 {
+                        app.focus[1] = app.stacks[app.focus[0]].notes.len() - 1;
+                    }
                 }
                 if let KeyCode::Char('h') = key.code {
                     // if focused note is at index 0
@@ -216,17 +221,45 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.focus[0] += 1;
                     }
                 }
+
+                if let KeyCode::Down = key.code {
+                    if app.focus[1] == app.stacks[app.focus[0]].notes.len() - 1 {
+                        app.focus[1] = 0;
+                        continue;
+                    }
+                    app.focus[1] += 1;
+                }
+                if let KeyCode::Up = key.code {
+                    if app.focus[1] == 0 {
+                        app.focus[1] = app.stacks[app.focus[0]].notes.len() - 1;
+                        continue;
+                    }
+                    app.focus[1] -= 1;
+                }
                 if let KeyCode::Char('e') = key.code {
                     app.state = State::Editing;
                     app.edit_mode = EditMode::Normal;
                 }
-
+                if let KeyCode::Char('i') = key.code {
+                    app.state = State::Editing;
+                    app.edit_mode = EditMode::Insert;
+                }
                 prev_key = key.code;
             }
             if app.state == State::Editing {
                 if app.edit_mode == EditMode::Normal {
                     if let KeyCode::Esc = key.code {
                         app.state = State::Normal;
+                    }
+
+                    if let KeyCode::Char('i') = key.code {
+                        app.edit_mode = EditMode::Insert;
+                    }
+                }
+
+                if app.edit_mode == EditMode::Insert {
+                    if let KeyCode::Esc = key.code {
+                        app.edit_mode = EditMode::Normal;
                     }
                 }
             }
@@ -284,6 +317,17 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                         .border_type(BorderType::Thick),
                 );
             }
+            f.render_widget(p, rect);
+
+            // status bar
+            let rect = Rect::new(area.width / 2 - 4, 1, 8, BAR_HEIGHT);
+            let p = Paragraph::new("Normal".to_string())
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded),
+                )
+                .alignment(Alignment::Left);
             f.render_widget(p, rect);
         }
     }
