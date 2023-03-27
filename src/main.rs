@@ -18,6 +18,7 @@ use tui::{
 const NOTE_HEIGHT: u16 = 10;
 const NOTE_WIDTH: u16 = 20;
 const INNER_MARGIN: u16 = 5;
+const TOP_MARGIN: u16 = 5;
 
 struct Stickynote {
     text: String,
@@ -36,6 +37,7 @@ impl Stack {
     }
 }
 
+#[derive(PartialEq)]
 enum EditMode {
     Normal,
     Insert,
@@ -75,12 +77,33 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut stack1 = Stack {
         notes: vec![Stickynote::new("note 11".to_string())],
     };
+    let mut stack2 = Stack {
+        notes: vec![
+            Stickynote::new("note 11".to_string()),
+            Stickynote::new("".to_string()),
+        ],
+    };
+
+    let mut stack3 = Stack {
+        notes: vec![
+            Stickynote::new("note 11".to_string()),
+            Stickynote::new("".to_string()),
+            Stickynote::new("".to_string()),
+        ],
+    };
+    let mut stack4 = Stack {
+        notes: vec![
+            Stickynote::new("note 11".to_string()),
+            Stickynote::new("".to_string()),
+            Stickynote::new("".to_string()),
+        ],
+    };
 
     // create app and run it
     let app = App {
         edit_mode: EditMode::Normal,
         state: State::Normal,
-        stacks: vec![stack1],
+        stacks: vec![stack1, stack2, stack3, stack4],
         focus: [0, 0],
     };
 
@@ -135,45 +158,78 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                 }
                 if let KeyCode::Char('h') = key.code {
-                    if app.state == State::Normal {
-                        if app.focus[0] == 0 {
-                            app.focus[0] = app.stacks.len() - 1;
-                        } else {
-                            app.focus[0] -= 1;
+                    // if focused note is at index 0
+                    if app.focus[0] == 0 {
+                        continue;
+                    } else {
+                        let current_stack_len = app.stacks[app.focus[0]].notes.len();
+                        let next_stack_len = app.stacks[app.focus[0] - 1].notes.len();
+                        if current_stack_len > next_stack_len && app.focus[1] > next_stack_len - 1 {
+                            app.focus[1] = next_stack_len - 1;
                         }
                     }
+
+                    app.focus[0] -= 1;
+                }
+                if let KeyCode::Char('l') = key.code {
+                    // if focused note is at end
+                    if app.focus[0] == app.stacks.len() - 1 {
+                        app.focus[0] = 0;
+                    } else {
+                        let current_stack_len = app.stacks[app.focus[0]].notes.len();
+                        let next_stack_len = app.stacks[app.focus[0] + 1].notes.len();
+                        if current_stack_len > next_stack_len && app.focus[1] > next_stack_len - 1 {
+                            app.focus[1] = current_stack_len - next_stack_len;
+                            if next_stack_len == 1 {
+                                app.focus[1] -= 1;
+                            }
+                        }
+                        app.focus[0] += 1;
+                    }
+                }
+                if let KeyCode::Char('j') = key.code {
+                    if app.focus[1] == app.stacks[app.focus[0]].notes.len() - 1 {
+                        app.focus[1] = 0;
+                        continue;
+                    }
+                    app.focus[1] += 1;
+                }
+                if let KeyCode::Char('k') = key.code {
+                    if app.focus[1] == 0 {
+                        app.focus[1] = app.stacks[app.focus[0]].notes.len() - 1;
+                        continue;
+                    }
+                    app.focus[1] -= 1;
                 }
                 if let KeyCode::Left = key.code {
-                    if app.state == State::Normal {
-                        if app.focus[0] == 0 {
-                            app.focus[0] = app.stacks.len() - 1;
-                        } else {
-                            app.focus[0] -= 1;
-                        }
+                    if app.focus[0] == 0 {
+                        app.focus[0] = app.stacks.len() - 1;
+                    } else {
+                        app.focus[0] -= 1;
                     }
                 }
 
-                if let KeyCode::Char('l') = key.code {
-                    if app.state == State::Normal {
-                        if app.focus[0] == app.stacks.len() - 1 {
-                            app.focus[0] = 0;
-                        } else {
-                            app.focus[0] += 1;
-                        }
-                    }
-                }
                 if let KeyCode::Right = key.code {
-                    if app.state == State::Normal {
-                        if app.focus[0] == app.stacks.len() - 1 {
-                            app.focus[0] = 0;
-                        } else {
-                            app.focus[0] += 1;
-                        }
+                    if app.focus[0] == app.stacks.len() - 1 {
+                        app.focus[0] = 0;
+                    } else {
+                        app.focus[0] += 1;
                     }
                 }
+                if let KeyCode::Char('e') = key.code {
+                    app.state = State::Editing;
+                    app.edit_mode = EditMode::Normal;
+                }
+
                 prev_key = key.code;
             }
-            if app.state == State::Editing {}
+            if app.state == State::Editing {
+                if app.edit_mode == EditMode::Normal {
+                    if let KeyCode::Esc = key.code {
+                        app.state = State::Normal;
+                    }
+                }
+            }
         }
     }
 }
@@ -195,13 +251,23 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     // render notes
     let stacks = &app.stacks;
     let total_stacks_length = (app.stacks.len() as u16) * (INNER_MARGIN + NOTE_WIDTH);
+
     let first_x = ((area.width - total_stacks_length) / 2) - (NOTE_WIDTH / 2) + INNER_MARGIN;
 
     for (i, stack) in stacks.iter().enumerate() {
+        let total_stack_height = (stack.notes.len() as u16) * (INNER_MARGIN + NOTE_HEIGHT);
+        //        let first_y = ((area.height - total_stack_height) / 2) - (NOTE_HEIGHT / 2) + TOP_MARGIN;
+        if (total_stack_height > area.height) {
+            panic!("total stack height is larger that screen height");
+        }
+        let first_y = ((area.height - total_stack_height) / 2)
+            + (INNER_MARGIN / 2 * stack.notes.len() as u16)
+            + INNER_MARGIN / 2;
+
         for (j, note) in stack.notes.iter().enumerate() {
             let rect = Rect::new(
                 first_x + (i as u16 * (NOTE_WIDTH + INNER_MARGIN)),
-                area.height / 2 - NOTE_HEIGHT / 2,
+                first_y + (j as u16 * (NOTE_HEIGHT / 2 + INNER_MARGIN)),
                 NOTE_WIDTH,
                 NOTE_HEIGHT,
             );
