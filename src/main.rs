@@ -59,6 +59,9 @@ impl App {
             notes: vec![Stickynote::new("text".to_string())],
         });
     }
+    fn get_focused_note(&mut self) -> &mut Stickynote {
+        return &mut self.stacks[self.focus[0]].notes[self.focus[1]];
+    }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -100,63 +103,77 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
+    let mut prev_key: KeyCode;
     loop {
         terminal.draw(|f| ui(f, &app))?;
 
         if let Event::Key(key) = event::read()? {
-            if let KeyCode::Char('q') = key.code {
-                return Ok(());
-            }
-            if let KeyCode::Char('n') = key.code {
-                app.new_stack();
-            }
-            if let KeyCode::Char('d') = key.code {
-                if app.stacks.len() == 0 {
-                    continue;
+            if app.state == State::Normal {
+                if let KeyCode::Char('q') = key.code {
+                    return Ok(());
                 }
-                app.stacks[app.focus[0]].notes.remove(app.focus[1]);
-                //remove stack if empty
-                if app.stacks[app.focus[0]].notes.len() == 0 {
-                    app.stacks.remove(app.focus[0]);
+                if let KeyCode::Char('n') = key.code {
+                    app.new_stack();
                 }
-            }
-            if let KeyCode::Char('h') = key.code {
-                if app.state == State::Normal {
-                    if app.focus[0] == 0 {
-                        app.focus[0] = app.stacks.len() - 1;
-                    } else {
-                        app.focus[0] -= 1;
+                if let KeyCode::Char('d') = key.code {
+                    if app.stacks.len() == 1 {
+                        app.get_focused_note().text = "".to_string();
+                        continue;
                     }
-                }
-            }
-            if let KeyCode::Left = key.code {
-                if app.state == State::Normal {
-                    if app.focus[0] == 0 {
-                        app.focus[0] = app.stacks.len() - 1;
-                    } else {
-                        app.focus[0] -= 1;
-                    }
-                }
-            }
+                    app.stacks[app.focus[0]].notes.remove(app.focus[1]);
 
-            if let KeyCode::Char('l') = key.code {
-                if app.state == State::Normal {
-                    if app.focus[0] == app.stacks.len() - 1 {
+                    //remove stack if empty
+                    if app.stacks[app.focus[0]].notes.len() == 0 {
+                        app.stacks.remove(app.focus[0]);
+                    }
+
+                    if app.focus[0] > app.stacks.len() - 1 {
+                        app.focus[0] = app.stacks.len() - 1;
+                    }
+                    if app.focus[0] < 0 {
                         app.focus[0] = 0;
-                    } else {
-                        app.focus[0] += 1;
                     }
                 }
-            }
-            if let KeyCode::Right = key.code {
-                if app.state == State::Normal {
-                    if app.focus[0] == app.stacks.len() - 1 {
-                        app.focus[0] = 0;
-                    } else {
-                        app.focus[0] += 1;
+                if let KeyCode::Char('h') = key.code {
+                    if app.state == State::Normal {
+                        if app.focus[0] == 0 {
+                            app.focus[0] = app.stacks.len() - 1;
+                        } else {
+                            app.focus[0] -= 1;
+                        }
                     }
                 }
+                if let KeyCode::Left = key.code {
+                    if app.state == State::Normal {
+                        if app.focus[0] == 0 {
+                            app.focus[0] = app.stacks.len() - 1;
+                        } else {
+                            app.focus[0] -= 1;
+                        }
+                    }
+                }
+
+                if let KeyCode::Char('l') = key.code {
+                    if app.state == State::Normal {
+                        if app.focus[0] == app.stacks.len() - 1 {
+                            app.focus[0] = 0;
+                        } else {
+                            app.focus[0] += 1;
+                        }
+                    }
+                }
+                if let KeyCode::Right = key.code {
+                    if app.state == State::Normal {
+                        if app.focus[0] == app.stacks.len() - 1 {
+                            app.focus[0] = 0;
+                        } else {
+                            app.focus[0] += 1;
+                        }
+                    }
+                }
+                prev_key = key.code;
             }
+            if app.state == State::Editing {}
         }
     }
 }
@@ -192,7 +209,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                 .block(Block::default().borders(Borders::ALL))
                 .alignment(Alignment::Center)
                 .wrap(widgets::Wrap { trim: true });
-            if i == app.focus[0] && i == app.focus[j] {
+
+            // focused block
+            if i == app.focus[0] && j == app.focus[1] {
                 p = p.block(
                     Block::default()
                         .borders(Borders::ALL)
