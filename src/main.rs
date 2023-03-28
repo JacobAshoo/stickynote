@@ -1,9 +1,11 @@
 //main branch
 #![allow(unused_imports, dead_code)]
 use crossterm::{
+    cursor::{self, DisableBlinking, EnableBlinking, SetCursorStyle},
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    ExecutableCommand,
 };
 use std::{error::Error, io};
 use tui::{
@@ -93,25 +95,25 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let mut stack1 = Stack {
-        notes: vec![Stickynote::new("note 11".to_string())],
+        notes: vec![Stickynote::new("".to_string())],
     };
     let mut stack2 = Stack {
         notes: vec![
-            Stickynote::new("note 11".to_string()),
+            Stickynote::new("".to_string()),
             Stickynote::new("".to_string()),
         ],
     };
 
     let mut stack3 = Stack {
         notes: vec![
-            Stickynote::new("note 11".to_string()),
+            Stickynote::new("".to_string()),
             Stickynote::new("".to_string()),
             Stickynote::new("".to_string()),
         ],
     };
     let mut stack4 = Stack {
         notes: vec![
-            Stickynote::new("note 11".to_string()),
+            Stickynote::new("".to_string()),
             Stickynote::new("".to_string()),
             Stickynote::new("".to_string()),
         ],
@@ -316,6 +318,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let total_stacks_length = (app.stacks.len() as u16) * (INNER_MARGIN + NOTE_WIDTH);
 
     let first_x = ((area.width - total_stacks_length) / 2) - (NOTE_WIDTH / 2) + INNER_MARGIN;
+    let mut first_ys: Vec<u16> = Vec::new();
 
     for (i, stack) in stacks.iter().enumerate() {
         let total_stack_height = (stack.notes.len() as u16) * (INNER_MARGIN + NOTE_HEIGHT);
@@ -326,6 +329,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         let first_y = ((area.height - total_stack_height) / 2)
             + (INNER_MARGIN / 2 * stack.notes.len() as u16)
             + INNER_MARGIN / 2;
+        first_ys.push(first_y);
 
         for (j, note) in stack.notes.iter().enumerate() {
             let rect = Rect::new(
@@ -367,5 +371,24 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                 .alignment(Alignment::Center);
             f.render_widget(p, rect);
         }
+    }
+
+    // edit mode
+    if app.state == State::Editing {
+        f.set_cursor(first_x + 1, first_ys[app.focus[1]] + 1);
+    }
+
+    // normal edit mode
+    if app.edit_mode == EditMode::Normal {
+        io::stdout()
+            .execute(DisableBlinking)
+            .unwrap()
+            .execute(SetCursorStyle::DefaultUserShape);
+    }
+
+    // insert mode
+    if app.edit_mode == EditMode::Insert {
+        let mut stdout = io::stdout();
+        execute!(stdout, SetCursorStyle::BlinkingBar, EnableBlinking);
     }
 }
