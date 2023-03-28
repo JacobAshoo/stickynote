@@ -59,12 +59,28 @@ struct App {
 
 impl App {
     fn new_stack(&mut self) {
-        self.stacks.push(Stack {
-            notes: vec![Stickynote::new("text".to_string())],
-        });
+        self.stacks.insert(
+            self.focus[0] + 1,
+            Stack {
+                notes: vec![Stickynote::new("".to_string())],
+            },
+        );
     }
     fn get_focused_note(&mut self) -> &mut Stickynote {
         return &mut self.stacks[self.focus[0]].notes[self.focus[1]];
+    }
+
+    fn add_to_stack(&mut self) {
+        self.stacks[self.focus[0]].notes.push(Stickynote {
+            text: "".to_string(),
+        });
+    }
+    fn total_notes(&self) -> u16 {
+        let mut total: u16 = 0;
+        for stack in &self.stacks {
+            total += stack.notes.len() as u16;
+        }
+        return total;
     }
 }
 
@@ -138,10 +154,14 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     return Ok(());
                 }
                 if let KeyCode::Char('n') = key.code {
+                    app.add_to_stack();
+                }
+                if let KeyCode::Char('s') = key.code {
                     app.new_stack();
                 }
+
                 if let KeyCode::Char('d') = key.code {
-                    if app.stacks.len() == 1 {
+                    if app.total_notes() == 1 {
                         app.get_focused_note().text = "".to_string();
                         continue;
                     }
@@ -179,7 +199,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 if let KeyCode::Char('l') = key.code {
                     // if focused note is at end
                     if app.focus[0] == app.stacks.len() - 1 {
-                        app.focus[0] = 0;
+                        continue;
                     } else {
                         let current_stack_len = app.stacks[app.focus[0]].notes.len();
                         let next_stack_len = app.stacks[app.focus[0] + 1].notes.len();
@@ -221,7 +241,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 if let KeyCode::Right = key.code {
                     // if focused note is at end
                     if app.focus[0] == app.stacks.len() - 1 {
-                        app.focus[0] = 0;
+                        continue;
                     } else {
                         let current_stack_len = app.stacks[app.focus[0]].notes.len();
                         let next_stack_len = app.stacks[app.focus[0] + 1].notes.len();
@@ -324,7 +344,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                 p = p.block(
                     Block::default()
                         .borders(Borders::ALL)
-                        .border_type(BorderType::Thick),
+                        .border_type(BorderType::Double),
                 );
             }
             f.render_widget(p, rect);
