@@ -375,7 +375,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
 
     // edit mode
     if app.state == State::Editing {
-        f.set_cursor(first_x + 1, first_ys[app.focus[1]] + 1);
+        f.set_cursor(
+            first_x + (app.focus[0] as u16 * (NOTE_WIDTH + INNER_MARGIN)) + 1,
+            first_ys[app.focus[1]] + (app.focus[1] as u16 * (NOTE_HEIGHT / 2 + INNER_MARGIN)) + 1,
+        );
     }
 
     // normal edit mode
