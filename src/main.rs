@@ -351,13 +351,20 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
 
             // status bar
             let rect = Rect::new(area.width / 2 - 4, 1, 8, BAR_HEIGHT);
-            let p = Paragraph::new("Normal".to_string())
+            let text = match app.state {
+                State::Normal => "Normal".to_string(),
+                State::Editing => match app.edit_mode {
+                    EditMode::Normal => "Edit".to_string(),
+                    EditMode::Insert => "Insert".to_string(),
+                },
+            };
+            let p = Paragraph::new(text)
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
                         .border_type(BorderType::Rounded),
                 )
-                .alignment(Alignment::Left);
+                .alignment(Alignment::Center);
             f.render_widget(p, rect);
         }
     }
