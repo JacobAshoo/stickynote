@@ -1,5 +1,4 @@
-//main branch
-#![allow(unused_imports, dead_code)]
+#![allow(unused_imports, dead_code, unused_must_use)]
 use crossterm::{
     cursor::{self, DisableBlinking, EnableBlinking, SetCursorStyle},
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -322,9 +321,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
 
     for (i, stack) in stacks.iter().enumerate() {
         let total_stack_height = (stack.notes.len() as u16) * (INNER_MARGIN + NOTE_HEIGHT);
-        //        let first_y = ((area.height - total_stack_height) / 2) - (NOTE_HEIGHT / 2) + TOP_MARGIN;
-        if (total_stack_height > area.height) {
-            panic!("total stack height is larger that screen height");
+        if total_stack_height > area.height {
+            continue;
         }
         let first_y = ((area.height - total_stack_height) / 2)
             + (INNER_MARGIN / 2 * stack.notes.len() as u16)
@@ -377,7 +375,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     if app.state == State::Editing {
         f.set_cursor(
             first_x + (app.focus[0] as u16 * (NOTE_WIDTH + INNER_MARGIN)) + 1,
-            first_ys[app.focus[1]] + (app.focus[1] as u16 * (NOTE_HEIGHT / 2 + INNER_MARGIN)) + 1,
+            first_ys[app.focus[0]] + (app.focus[1] as u16 * (NOTE_HEIGHT / 2 + INNER_MARGIN)) + 1,
         );
     }
 
